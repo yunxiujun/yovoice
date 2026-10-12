@@ -122,7 +122,7 @@ git push origin main custom
 | `upstream` | https://github.com/leemysw/yovoice.git（原项目，只读） |
 | `origin` | https://github.com/yunxiujun/yovoice.git（你的 fork） |
 | `main` | 跟踪 `upstream/main`，当前 `fc1ecb4` |
-| `custom` | 跟踪 `origin/custom`，当前 `1dec9f4` |
+| `custom` | 跟踪 `origin/custom`，当前 `e369087` |
 
 **凭据**：`D:\AI\AI指导说明类文件\常用api.env` 里的 `GITHUB API KEY`（classic PAT，
 scopes: `admin:org` / `repo` / `user` / `workflow`）。已通过
@@ -243,4 +243,4 @@ make check         # 前端 + 核心全部检查
 
 ---
 
-*最后更新：2026-10-12*
+*最后更新：2026-10-12（拖拽改为指针事件；作品列表支持分组）*
