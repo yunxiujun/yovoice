@@ -45,7 +45,7 @@ export function MediaLibrary({ page, state, query, onQueryChange, track, auditio
   const sections = voices && groups.length > 0 && activeFilter === null ? sectionize(filteredVoices, groups, voice => voice.groupId, search.length > 0) : null;
   // 参考音频：头像外围一圈声波，点卡片试听；存根显示时长。有分组时整条卡片可以拖到分组上。
   const voiceRow = (voice: Voice, index: number) => <Ticket key={voice.id} index={index} className="voice-row"
-    drag={groups.length > 0 ? groupEditing.dragProps(voice.id, voice.groupId) : undefined}
+    drag={groups.length > 0 ? groupEditing.dragProps(voice.id, voice.groupId, voice.name) : undefined}
     cover={<WaveRing seed={voice.id} duration={voice.duration}><Player compact avatar={{ seed: voice.id, label: t('@yovoice.app.audition', { name: voice.name }), select: () => audition({ ...voice, kind: 'voices', subtitle: t('@yovoice.app.subtitleReference') }) }} suspended={suspended} track={track?.id === voice.id ? track : null} onError={onError} /></WaveRing>}
     eyebrow={[voice.fileName.split('.').pop()?.toUpperCase(), voice.source].filter(Boolean).join(' · ')}
     title={<h3 onPointerEnter={overflowTitle}>{voice.name}</h3>} excerpt={voice.referenceText?.trim()}

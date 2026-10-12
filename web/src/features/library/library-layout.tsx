@@ -1,7 +1,8 @@
-import type { CSSProperties, HTMLAttributes, ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { HStack, VStack } from '@astryxdesign/core/Layout';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Search } from 'lucide-react';
+import type { GroupDragSource } from './groups';
 
 export function LibraryPage({ title, actions, controls, toolbar, query, onQueryChange, searchLabel, empty, noResults, hasItems, hasResults, layout = 'list', children }: {
   title: string; actions?: ReactNode; controls?: ReactNode; toolbar?: ReactNode; query: string; onQueryChange: (query: string) => void;
@@ -28,7 +29,7 @@ export function LibraryEmpty({ icon, art, title, description, action }: { icon?:
 // 封面因类型而异（唱片、磁带、声波），结构、间距和动效保持一致。
 export function Ticket({ cover, coverClassName = '', eyebrow, title, excerpt, actions, stub, stubActions, className = '', index = 0, drag }: {
   cover: ReactNode; coverClassName?: string; eyebrow?: ReactNode; title: ReactNode; excerpt?: string; actions?: ReactNode;
-  stub?: ReactNode; stubActions?: ReactNode; className?: string; index?: number; drag?: HTMLAttributes<HTMLElement>;
+  stub?: ReactNode; stubActions?: ReactNode; className?: string; index?: number; drag?: GroupDragSource;
 }) {
   return <HStack className={`library-entry ticket ${className}`} gap={0} style={{ '--ticket-index': Math.min(index, 10) } as CSSProperties} {...drag}>
     <HStack className="ticket-main grow" gap={4} vAlign="center">

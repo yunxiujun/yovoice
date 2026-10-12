@@ -1,4 +1,4 @@
-import { useRef, useState, type DragEvent, type ReactNode } from 'react';
+import { useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { DropdownMenu } from '@astryxdesign/core/DropdownMenu';
 import { HStack } from '@astryxdesign/core/Layout';
@@ -11,8 +11,8 @@ import { formatCallError } from '../../shared/i18n/format';
 import { overflowTitle } from '../../shared/ui/overflow-title';
 import type { Group } from '../../shared/workbench';
 
-/** 分组的两个作用域：参考音色与角色各自独立，与 Go 的 workbench.ScopeVoice/ScopeCharacter 对应。 */
-export type GroupScope = 'voice' | 'character';
+/** 分组的三个作用域：参考音色、角色、作品各自独立，与 Go 的 workbench.Scope* 对应。 */
+export type GroupScope = 'voice' | 'character' | 'draft';
 
 /** 分组名长度上限，与 Go 的 workbench.GroupNameLimit 一致。 */
 export const GROUP_NAME_LIMIT = 60;
@@ -20,27 +20,40 @@ export const GROUP_NAME_LIMIT = 60;
 /** 「未分组」在筛选与折叠里需要一个稳定的键，服务端的分组 ID 不会与它相撞。 */
 export const UNGROUPED_KEY = '@ungrouped';
 
-/** 拖拽时携带的自定义 MIME，用来把列表内部的条目与外部拖入的文件区分开。 */
-const ENTRY_MIME = 'application/x-yovoice-entry';
+/** 指针移动超过这个距离才算拖拽，免得把普通的点击误判成拖动。 */
+const DRAG_THRESHOLD = 5;
 
 export const saveGroup = (scope: GroupScope, id: string, name: string) => call<Group>('group.save', { scope, id, name });
 export const deleteGroup = (scope: GroupScope, id: string) => call('group.delete', { scope, id });
 export const assignGroup = (scope: GroupScope, groupId: string, ids: string[]) => call('group.assign', { scope, groupId, ids });
 
-/** 挂在可拖动的条目上，让它能把 id 交给分组落点。 */
+/**
+ * 挂在可拖动的条目上。拖拽用指针事件手写，**不用 HTML5 DnD**：
+ * 桌面 App 跑在 WebView2 里，而 HTML5 拖拽的启动依赖操作系统级的拖拽会话，
+ * 在嵌入式宿主和触控板上都可能不触发 —— 实测用户根本拖不动。
+ * 指针事件则和点击走同一条路径，只要点得动就一定拖得动。
+ *
+ * 监听的是**捕获阶段**：卡片上的标题、菜单都是按钮，按钮自己会在冒泡阶段
+ * 截住 pointerdown，挂在根节点的冒泡处理器就永远收不到 —— 而标题正是用户
+ * 最顺手去抓的地方。捕获阶段先于按钮自己的处理器执行，抓哪儿都能拖起来。
+ */
 export type GroupDragSource = {
-  draggable: true;
-  onDragStart: (event: DragEvent<HTMLElement>) => void;
-  onDragEnd: () => void;
+  onPointerDownCapture: (event: ReactPointerEvent<HTMLElement>) => void;
+  'data-draggable'?: 'true';
+  'data-dragging'?: 'true';
 };
 
-/** 挂在分组标题、筛选按钮这类落点上。groupId 为空串表示「未分组」。 */
+/** 挂在分组标题、筛选按钮这类落点上。data-group-drop 为空串表示「未分组」。 */
 export type GroupDropTarget = {
-  onDragOver: (event: DragEvent<HTMLElement>) => void;
-  onDragLeave: () => void;
-  onDrop: (event: DragEvent<HTMLElement>) => void;
+  'data-group-drop': string;
   'data-drop-active'?: 'true';
 };
+
+/** 找出指针当前位置下的分组落点；返回 null 表示没落在任何落点上。 */
+function dropTargetAt(x: number, y: number) {
+  const hit = document.elementFromPoint(x, y)?.closest('[data-group-drop]');
+  return hit ? hit.getAttribute('data-group-drop') : null;
+}
 
 /** 新建或重命名分组的对话框。existing 用于拦截重名，调用方应排除当前正在改名的分组。 */
 export function GroupDialog({ title, initial = '', existing, busy, error, onClose, onSubmit }: {
@@ -204,8 +217,6 @@ export function useGroupEditing(scope: GroupScope, groups: Group[], onError: (me
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
-  // 记住拖拽起点所在的组：拖回原来的组就不必再打扰服务端。
-  const origin = useRef('');
 
   function move(ids: string[], groupId: string) {
     void assignGroup(scope, groupId, ids).catch(e => onError(formatCallError(t, e)));
@@ -228,39 +239,89 @@ export function useGroupEditing(scope: GroupScope, groups: Group[], onError: (me
     } catch (e) { setError(formatCallError(t, e)); }
     finally { setBusy(false); }
   }
-  // 拖拽用原生 HTML5 DnD：条目负责携带 id，分组标题与筛选按钮负责接收。
-  // 自定义 MIME 用来识别「这是本列表内部的拖拽」，不依赖 React 的渲染时机，
-  // 也不会把从资源管理器拖进来的文件误当成条目。
-  function dragProps(id: string, current?: string): GroupDragSource {
+  // 拖拽用指针事件手写：按下后移动超过阈值才算拖拽，松手时看指针底下是哪个落点。
+  // 监听器挂在 window 上，所以指针移到卡片外面也照样跟得住。
+  // label 会变成跟着光标走的小标签 —— 拖动时看得见自己拎着哪一条，才不会以为没反应。
+  function dragProps(id: string, current?: string, label?: string): GroupDragSource {
     return {
-      draggable: true,
-      onDragStart: event => {
-        setDragging(id);
-        origin.current = current ?? '';
-        event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData(ENTRY_MIME, id);
-        event.dataTransfer.setData('text/plain', id);
+      'data-draggable': 'true',
+      ...(dragging === id ? { 'data-dragging': 'true' as const } : {}),
+      onPointerDownCapture: event => {
+        if (event.button !== 0) return; // 只认左键
+        const from = current ?? '';
+        const startX = event.clientX;
+        const startY = event.clientY;
+        let active = false;
+        // 跟随光标的标签直接建在 document 上：pointermove 触发得很密，
+        // 走 React 状态会让整个列表反复重渲染，所以只改这一颗节点的 transform。
+        let chip: HTMLDivElement | null = null;
+        const place = (x: number, y: number) => { if (chip) chip.style.transform = `translate3d(${x}px, ${y}px, 0)`; };
+
+        const stop = () => {
+          window.removeEventListener('pointermove', track, true);
+          window.removeEventListener('pointerup', release, true);
+          window.removeEventListener('pointercancel', abort, true);
+          window.removeEventListener('blur', onBlur, true);
+          document.body.classList.remove('group-dragging');
+          chip?.remove();
+          chip = null;
+          setDragging(null);
+          setOver(null);
+        };
+        const track = (moveEvent: PointerEvent) => {
+          // 指针已经松开（比如在窗口外面松的手，pointerup 没送到）就收工，免得半挂着。
+          if ((moveEvent.buttons & 1) === 0) { stop(); return; }
+          if (!active) {
+            if (Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY) < DRAG_THRESHOLD) return;
+            active = true;
+            setDragging(id);
+            document.body.classList.add('group-dragging');
+            chip = document.createElement('div');
+            chip.className = 'group-drag-chip';
+            chip.textContent = label ?? '';
+            chip.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(chip);
+          }
+          // 按下的那一刻浏览器就在拉选文字了，事后再加 user-select: none 也撤不掉已经存在的选区
+          // —— 拖到哪儿，哪儿的文字就整块变蓝。只能主动把它清掉。
+          const selection = window.getSelection();
+          if (selection && !selection.isCollapsed) selection.removeAllRanges();
+          place(moveEvent.clientX, moveEvent.clientY);
+          setOver(dropTargetAt(moveEvent.clientX, moveEvent.clientY));
+        };
+        const release = (upEvent: PointerEvent) => {
+          const target = active ? dropTargetAt(upEvent.clientX, upEvent.clientY) : null;
+          stop();
+          if (!active) return;
+          // 松手后浏览器还会补一次 click，吃掉它，免得顺带触发卡片上的标题按钮或播放按钮。
+          // 摘掉监听只有两种情况：补上来的 click 到了（吃掉并摘掉），或者用户又按下了一次新的指针
+          // （说明那次 click 属于新动作，不该再吃）。用定时器判断不了这件事 —— 留长了会吃掉
+          // 用户的下一次正常点击，留短了又可能漏掉补上来的 click。
+          const disarm = () => {
+            window.removeEventListener('click', swallow, true);
+            window.removeEventListener('pointerdown', disarm, true);
+          };
+          const swallow = (clickEvent: MouseEvent) => { clickEvent.stopPropagation(); clickEvent.preventDefault(); disarm(); };
+          window.addEventListener('click', swallow, true);
+          window.addEventListener('pointerdown', disarm, true);
+          if (target !== null && target !== from) move([id], target);
+        };
+        const abort = () => stop();
+        // 切到别的程序会丢掉 pointerup，靠 blur 收尾。但页面内部的焦点变化同样会冒到 window 上：
+        // 按下按钮时按钮抢到焦点，原来有焦点的元素就 blur 一次 —— 若照单全收，等于一按就取消拖拽。
+        // document.hasFocus() 正好区分这两种情况。
+        const onBlur = () => { if (!document.hasFocus()) stop(); };
+
+        window.addEventListener('pointermove', track, true);
+        window.addEventListener('pointerup', release, true);
+        window.addEventListener('pointercancel', abort, true);
+        window.addEventListener('blur', onBlur, true);
       },
-      onDragEnd: () => { setDragging(null); setOver(null); },
     };
   }
   function dropProps(groupId: string): GroupDropTarget {
     return {
-      onDragOver: event => {
-        if (!Array.from(event.dataTransfer.types).includes(ENTRY_MIME)) return;
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
-        setOver(groupId);
-      },
-      onDragLeave: () => setOver(current => (current === groupId ? null : current)),
-      onDrop: event => {
-        const id = event.dataTransfer.getData(ENTRY_MIME) || event.dataTransfer.getData('text/plain');
-        const from = origin.current;
-        setDragging(null); setOver(null);
-        if (!id) return;
-        event.preventDefault();
-        if (from !== groupId) move([id], groupId);
-      },
+      'data-group-drop': groupId,
       ...(over === groupId ? { 'data-drop-active': 'true' as const } : {}),
     };
   }

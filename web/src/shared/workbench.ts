@@ -30,7 +30,7 @@ export interface ScoreTrack { id: string; name: string; role?: ScoreRole; progra
 export interface ScoreSection { name: string; start: number; end: number; tempo?: number }
 export interface Score { tempo: number; timeSignature: number[]; key?: string; sections?: ScoreSection[]; tracks: ScoreTrack[] }
 export type ProjectKind = 'text' | 'story' | 'subtitle' | 'music' | 'score';
-export interface Draft extends SynthesisSettings { performance?: CharacterPerformance; id: string; title: string; text: string; kind?: ProjectKind; characterId?: string; createdAt?: string; updatedAt?: string; subtitles?: SubtitleDocument; timeline?: AudioTimeline; score?: Score }
+export interface Draft extends SynthesisSettings { performance?: CharacterPerformance; id: string; title: string; text: string; kind?: ProjectKind; characterId?: string; groupId?: string; createdAt?: string; updatedAt?: string; subtitles?: SubtitleDocument; timeline?: AudioTimeline; score?: Score }
 export type ProjectPage = 'text' | 'story' | 'music' | 'score';
 // 旧字幕作品沿用原始数据，统一归入故事。
 export const projectKind = (draft: Draft): ProjectPage => draft.kind === 'music' || draft.kind === 'score' ? draft.kind : draft.subtitles || draft.kind === 'story' || draft.kind === 'subtitle' ? 'story' : 'text';
@@ -86,7 +86,7 @@ export interface Activity {
 }
 export interface Preferences { downloadSource: string; backend: string; modelDirectory: string | null; uiLocale: UiLocale; proxyURL?: string; proxyEnabled?: boolean; aiTimeout?: number }
 export interface State {
-  characters: Character[]; characterGroups?: Group[]; previews: CharacterPreview[]; drafts: Draft[]; voices: Voice[]; voiceGroups?: Group[]; models: InstalledModel[]; history: Generation[];
+  characters: Character[]; characterGroups?: Group[]; previews: CharacterPreview[]; drafts: Draft[]; draftGroups?: Group[]; voices: Voice[]; voiceGroups?: Group[]; models: InstalledModel[]; history: Generation[];
   preferences: Preferences; runtimePath: string | null; runtimeBackend: string | null; runtimeVersion: string | null; runtimes?: Record<string, { path: string; version: string }>; activity: Activity | null;
   aiProviders?: AIProvider[]; aiProviderID?: string; aiTask?: AITask;
 }
@@ -115,7 +115,7 @@ export const createDraft = (example = false, locale: UiLocale = 'zh-CN', modelId
   intervalSilenceMs: 200, doSample: true, numBeams: 3, lengthPenalty: 0, seed: null,
 };
 };
-export const emptyState = (): State => ({ characters: [], characterGroups: [], previews: [], drafts: [createDraft(true)], voices: [], voiceGroups: [], models: [], history: [], preferences: { downloadSource: 'modelscope', backend: 'cpu', modelDirectory: null, uiLocale: 'zh-CN' }, runtimePath: null, runtimeBackend: null, runtimeVersion: null, activity: null });
+export const emptyState = (): State => ({ characters: [], characterGroups: [], previews: [], drafts: [createDraft(true)], draftGroups: [], voices: [], voiceGroups: [], models: [], history: [], preferences: { downloadSource: 'modelscope', backend: 'cpu', modelDirectory: null, uiLocale: 'zh-CN' }, runtimePath: null, runtimeBackend: null, runtimeVersion: null, activity: null });
 // version 是推荐安装的 audio.cpp 版本，minimum 是当前应用可用的最低版本。
 export interface EngineInfo { version: string; minimum: string }
 // 服务未报告版本要求（如浏览器预览）时不做限制。

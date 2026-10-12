@@ -288,8 +288,14 @@
   .group-heading[data-drop-active="true"] { background: color-mix(in srgb, var(--app-accent) 16%, transparent); outline: calc(var(--border-width) * 2) dashed var(--app-accent); outline-offset: calc(var(--spacing-1) * -1); border-radius: var(--radius-element); }
   .group-section[data-collapsed="true"] + .group-section { margin-top: var(--spacing-4); }
   /* 可拖动的条目给出抓取光标，让「能拖」这件事看得见。 */
-  .library-entry[draggable="true"] { cursor: grab; }
-  .library-entry[draggable="true"]:active { cursor: grabbing; }
+  /* 卡片上直接禁掉文字选择：不然按下指针的瞬间浏览器就开始拉选文字，
+     等拖拽真的启动时已经整页蓝了 —— 事后再加 user-select 是来不及的。 */
+  .library-entry[data-draggable="true"] { cursor: grab; user-select: none; }
+  /* 拖拽进行中：整页换成抓取光标，并禁止把新选区拉到落点标题的文字上。 */
+  body.group-dragging, body.group-dragging * { cursor: grabbing; user-select: none; }
+  .library-entry[data-dragging="true"] { opacity: .45; }
+  /* 跟着光标走的小标签，告诉用户手里拎着哪一条。反色保证明暗主题都读得清。 */
+  .group-drag-chip { position: fixed; top: 0; left: 0; z-index: 9000; pointer-events: none; max-width: calc(var(--spacing-10) * 6); padding: var(--spacing-1) var(--spacing-3); border-radius: var(--radius-full); background: var(--app-film); color: var(--app-on-film); box-shadow: var(--shadow-med); font-size: var(--font-size-xs); line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .history-meta { color: var(--app-muted); font-size: var(--app-small-font); }
   .audio-actions-menu { min-width: calc(var(--spacing-10) * 5); }
   .history-row small { font-variant-numeric: tabular-nums; white-space: nowrap; }

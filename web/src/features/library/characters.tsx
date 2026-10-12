@@ -150,7 +150,7 @@ export function CharacterLibrary({ state, catalog, create, edit, apply, onError,
   const sections = groups.length > 0 && activeFilter === null ? sectionize(filtered, groups, c => c.groupId, searching) : null;
   // 角色是一张单曲唱片：头像是唱片标签，点卡片试听，播放时唱片转动；存根记着有几种演绎。
   const characterRow = (c: Character, index: number) => <Ticket key={c.id} index={index} className="character-row"
-    drag={groups.length > 0 ? groupEditing.dragProps(c.id, c.groupId) : undefined}
+    drag={groups.length > 0 ? groupEditing.dragProps(c.id, c.groupId, c.name) : undefined}
     cover={<RecordCover seed={c.id} interactive><Player compact avatar={{ seed: c.id, label: t('@yovoice.character.listen'), disabled: !c.preview, select: () => setPlaying(c.id) }} suspended={!active || !!deleting} track={playing === c.id && c.preview ? { id: c.preview.id, name: c.name, fileName: c.preview.fileName, kind: 'outputs', subtitle: '', playRequest: 1 } : null} onError={onError} /></RecordCover>}
     eyebrow={[catalog.find(m => m.id === c.settings.modelId)?.name ?? c.settings.modelId, t(!c.preview ? '@yovoice.character.emptyPreview' : previewStale(c) ? '@yovoice.character.stale' : '@yovoice.character.ready')].join(' · ')}
     title={<h3 onPointerEnter={overflowTitle}>{c.name}</h3>} excerpt={c.demoText.trim()}

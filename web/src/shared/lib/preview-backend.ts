@@ -22,7 +22,7 @@ function load(): State {
       state = value; break;
     } catch { /* 主副本损坏时继续读取恢复备份。 */ }
   }
-  state.characters ??= []; state.characterGroups ??= []; state.voiceGroups ??= []; state.previews = []; delete state.aiTask;
+  state.characters ??= []; state.characterGroups ??= []; state.draftGroups ??= []; state.voiceGroups ??= []; state.previews = []; delete state.aiTask;
   if (!['zh-CN', 'en'].includes(state.preferences?.uiLocale)) {
     state = { ...state, preferences: { ...state.preferences, uiLocale: 'zh-CN' } };
   }
@@ -80,6 +80,8 @@ export async function previewCall<T>(method: string, data: unknown): Promise<T> 
     const draft = structuredClone(data as Draft); const index = state.drafts.findIndex(d => d.id === draft.id);
     draft.createdAt = index < 0 ? new Date().toISOString() : state.drafts[index]?.createdAt;
     draft.updatedAt = state.drafts[index]?.updatedAt;
+    // 分组只由 group.assign 修改，保存报文里的 groupId 可能过期，一律以已存的那份为准。
+    if (index >= 0) draft.groupId = state.drafts[index]?.groupId;
     if (index < 0 || JSON.stringify(draft) !== JSON.stringify(state.drafts[index])) draft.updatedAt = new Date().toISOString();
     if (index < 0) state.drafts.unshift(draft); else state.drafts[index] = draft;
     publish(); return true as T;
@@ -108,9 +110,10 @@ export async function previewCall<T>(method: string, data: unknown): Promise<T> 
   }
   // 分组与 Go 的 group.save / group.delete / group.assign 对齐，预览端只保存归属关系。
   if (method === 'group.save' || method === 'group.delete' || method === 'group.assign') {
-    const input = data as { scope: 'voice' | 'character'; id: string; groupId: string; name: string; ids: string[] };
-    if (input.scope !== 'voice' && input.scope !== 'character') throw new CallError('@yovoice.error.groupInvalid');
-    const list = input.scope === 'character' ? (state.characterGroups ??= []) : (state.voiceGroups ??= []);
+    const input = data as { scope: 'voice' | 'character' | 'draft'; id: string; groupId: string; name: string; ids: string[] };
+    const scope = input.scope;
+    if (scope !== 'voice' && scope !== 'character' && scope !== 'draft') throw new CallError('@yovoice.error.groupInvalid');
+    const list = scope === 'character' ? (state.characterGroups ??= []) : scope === 'draft' ? (state.draftGroups ??= []) : (state.voiceGroups ??= []);
     const moved = input.ids ?? [];
     if (method === 'group.save') {
       const name = input.name?.trim();
@@ -128,14 +131,17 @@ export async function previewCall<T>(method: string, data: unknown): Promise<T> 
     if (method === 'group.delete') {
       if (!list.some(g => g.id === input.id)) throw new CallError('@yovoice.error.groupInvalid');
       const clear = <U extends { id: string; groupId?: string }>(values: U[]) => values.map(value => value.groupId === input.id ? { ...value, groupId: undefined } : value);
-      if (input.scope === 'character') { state.characterGroups = list.filter(g => g.id !== input.id); state.characters = clear(state.characters); }
+      if (scope === 'character') { state.characterGroups = list.filter(g => g.id !== input.id); state.characters = clear(state.characters); }
+      else if (scope === 'draft') { state.draftGroups = list.filter(g => g.id !== input.id); state.drafts = clear(state.drafts); }
       else { state.voiceGroups = list.filter(g => g.id !== input.id); state.voices = clear(state.voices); }
       publish(); return true as T;
     }
     if (!moved.length) throw new CallError('@yovoice.error.groupInvalid');
     if (input.groupId && !list.some(g => g.id === input.groupId)) throw new CallError('@yovoice.error.groupInvalid');
     const assign = <U extends { id: string; groupId?: string }>(values: U[]) => values.map(value => moved.includes(value.id) ? { ...value, groupId: input.groupId || undefined } : value);
-    if (input.scope === 'character') state.characters = assign(state.characters); else state.voices = assign(state.voices);
+    if (scope === 'character') state.characters = assign(state.characters);
+    else if (scope === 'draft') state.drafts = assign(state.drafts);
+    else state.voices = assign(state.voices);
     publish(); return true as T;
   }
   if (method === 'draft.delete') { state.drafts = state.drafts.filter(draft => draft.id !== (data as { id: string }).id); publish(); return true as T; }

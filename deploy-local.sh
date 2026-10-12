@@ -101,6 +101,8 @@ NEWJS="$(grep -o 'assets/index-[A-Za-z0-9_-]*\.js' "$APP/web/index.html" | head 
 echo "index.html 指向：$NEWJS"
 [ -f "$APP/web/$NEWJS" ] || { echo "index.html 指向的 JS 不存在，部署可能不完整" >&2; exit 1; }
 grep -q 'group.save' "$APP/web/$NEWJS" && echo "前端产物包含分组功能：是" || echo "警告：前端产物里没找到 group.save"
+grep -q 'draftGroups' "$APP/web/$NEWJS" && echo "前端产物包含作品分组：是" || echo "警告：前端产物里没找到 draftGroups"
+grep -q 'group-drag-chip' "$APP/web/$NEWJS" && echo "前端产物包含拖拽指示：是" || echo "警告：前端产物里没找到 group-drag-chip"
 ls -la "$APP/service/yovoice-service.exe"
 
 say "启动 App"

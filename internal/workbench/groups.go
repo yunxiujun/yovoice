@@ -9,10 +9,11 @@ import (
 	"yovoice/internal/schema"
 )
 
-// 分组分两套作用域：参考音色与角色各自独立，同名分组互不影响。
+// 分组分三套作用域：参考音色、角色、作品各自独立，同名分组互不影响。
 const (
 	ScopeVoice     = "voice"
 	ScopeCharacter = "character"
+	ScopeDraft     = "draft"
 	// GroupNameLimit 是分组名长度上限，与前端限制一致。
 	GroupNameLimit = 60
 	// MaxGroups 限制单套分组的数量，避免界面被无限增长的分组撑坏。
@@ -20,15 +21,19 @@ const (
 )
 
 func scopeValid(scope string) bool {
-	return scope == ScopeVoice || scope == ScopeCharacter
+	return scope == ScopeVoice || scope == ScopeCharacter || scope == ScopeDraft
 }
 
 // groupList 返回指定作用域的分组切片指针，让增删改三处共用同一份寻址逻辑。
 func groupList(state *schema.State, scope string) *[]schema.Group {
-	if scope == ScopeCharacter {
+	switch scope {
+	case ScopeCharacter:
 		return &state.CharacterGroups
+	case ScopeDraft:
+		return &state.DraftGroups
+	default:
+		return &state.VoiceGroups
 	}
-	return &state.VoiceGroups
 }
 
 // groupExists 判断分组是否可用。空 ID 表示未分组，始终有效。
@@ -118,17 +123,24 @@ func (w *Workbench) DeleteGroup(scope, id string) error {
 				break
 			}
 		}
-		if scope == ScopeCharacter {
+		switch scope {
+		case ScopeCharacter:
 			for i := range s.Characters {
 				if s.Characters[i].GroupID == id {
 					s.Characters[i].GroupID = ""
 				}
 			}
-			return
-		}
-		for i := range s.Voices {
-			if s.Voices[i].GroupID == id {
-				s.Voices[i].GroupID = ""
+		case ScopeDraft:
+			for i := range s.Drafts {
+				if s.Drafts[i].GroupID == id {
+					s.Drafts[i].GroupID = ""
+				}
+			}
+		default:
+			for i := range s.Voices {
+				if s.Voices[i].GroupID == id {
+					s.Voices[i].GroupID = ""
+				}
 			}
 		}
 	}, true)
@@ -150,17 +162,24 @@ func (w *Workbench) AssignGroup(scope, groupID string, ids []string) error {
 		for _, id := range ids {
 			moved[id] = true
 		}
-		if scope == ScopeCharacter {
+		switch scope {
+		case ScopeCharacter:
 			for i := range s.Characters {
 				if moved[s.Characters[i].ID] {
 					s.Characters[i].GroupID = groupID
 				}
 			}
-			return
-		}
-		for i := range s.Voices {
-			if moved[s.Voices[i].ID] {
-				s.Voices[i].GroupID = groupID
+		case ScopeDraft:
+			for i := range s.Drafts {
+				if moved[s.Drafts[i].ID] {
+					s.Drafts[i].GroupID = groupID
+				}
+			}
+		default:
+			for i := range s.Voices {
+				if moved[s.Voices[i].ID] {
+					s.Voices[i].GroupID = groupID
+				}
 			}
 		}
 	}, true)

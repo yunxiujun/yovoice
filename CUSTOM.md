@@ -32,23 +32,43 @@ origin/main     ──┤  (你自己的 fork，仅作镜像备份)
 
 | # | 文件 / 模块 | 改了什么 | 为什么 | 上游同步风险 |
 | - | ----------- | -------- | ------ | ------------ |
-| 1 | `internal/schema/schema.go` | 新增 `Group` 结构；`Voice`/`Character` 加 `GroupID`；`State` 加 `voiceGroups`/`characterGroups` | 分组数据模型 | 中 |
-| 2 | `internal/workbench/groups.go`（新增） | 分组的增删改与成员归属 | 分组业务逻辑 | 低 |
+| 1 | `internal/schema/schema.go` | 新增 `Group` 结构；`Voice`/`Character`/`Draft` 加 `GroupID`；`State` 加 `voiceGroups`/`characterGroups`/`draftGroups` | 分组数据模型（三套作用域） | 中 |
+| 2 | `internal/workbench/groups.go`（新增） | 分组的增删改与成员归属，`scope` 取 `voice`/`character`/`draft` | 分组业务逻辑 | 低 |
 | 3 | `internal/workbench/library.go` | `UpdateVoice` 加 `groupID` 参数；`SaveCharacter` 校验分组 | 保存时带上分组 | 中 |
-| 4 | `internal/desktop/rpc.go` | 新增 `group.save`/`group.delete`/`group.assign`；`voice.update` 传 `groupId` | 接口暴露 | 中 |
-| 5 | `internal/msg/msg.go` | 新增 `ErrGroupInvalid`/`ErrGroupLimit` 及 `All()` 登记 | 错误提示 | 低 |
-| 6 | `web/src/features/library/groups.tsx`（新增） | 分组区块、折叠、筛选条、拖拽搬运、移动菜单、对话框与状态机 | 两个列表页共用 | 低 |
-| 7 | `web/src/features/library/media-library.tsx` | 参考音色按分组区块展示，支持折叠 / 筛选 / 拖拽 | 定制需求 | 中 |
-| 8 | `web/src/features/library/characters.tsx` | 角色库按分组区块展示，支持折叠 / 筛选 / 拖拽 | 定制需求 | 中 |
-| 9 | `web/src/shared/workbench.ts` | 补 `Group` 类型与 `groupId` 字段 | 类型对齐 | 低 |
-| 10 | `web/src/shared/i18n/catalogs/*.json` | 分组文案与 2 个新错误码 | i18n | 低 |
-| 11 | `web/src/app/styles.css` | 分组区块、筛选条与拖拽落点样式 | 样式 | 低 |
-| 12 | `web/src/features/library/library-layout.tsx` | `LibraryPage` 加 `toolbar` 插槽；票根支持拖拽属性 | 承载筛选栏与拖拽 | 中 |
-| 13 | `deploy-local.sh`（新增） | 把构建产物部署到本机已安装的 yovoice | 让定制真正生效 | 低 |
+| 4 | `internal/workbench/drafts.go` | 保存作品时 `GroupID` 一律取已存的那份 | 编辑器里的副本可能早于分组，照单全收会把归属冲掉 | 高 |
+| 5 | `internal/desktop/rpc.go` | 新增 `group.save`/`group.delete`/`group.assign`；`voice.update` 传 `groupId` | 接口暴露 | 中 |
+| 6 | `internal/msg/msg.go` | 新增 `ErrGroupInvalid`/`ErrGroupLimit` 及 `All()` 登记 | 错误提示 | 低 |
+| 7 | `web/src/features/library/groups.tsx`（新增） | 分组区块、折叠、筛选条、拖拽搬运、移动菜单、对话框与状态机 | 素材库与作品列表共用 | 低 |
+| 8 | `web/src/features/library/media-library.tsx` | 参考音色按分组区块展示，支持折叠 / 筛选 / 拖拽 | 定制需求 | 中 |
+| 9 | `web/src/features/library/characters.tsx` | 角色库按分组区块展示，支持折叠 / 筛选 / 拖拽 | 定制需求 | 中 |
+| 10 | `web/src/features/library/projects.tsx` | 作品列表（故事配音/语音生成/音乐生成/编曲）同样支持分组，并加「新建分组」入口 | 定制需求 | 中 |
+| 11 | `web/src/app/workbench-chrome.tsx` | 把 `state.draftGroups` 传给作品列表；列表里当前打开的那条，分组归属取已存的那份 | 作品分组接线 | 中 |
+| 12 | `web/src/shared/workbench.ts` | 补 `Group` 类型、`Draft.groupId`、`State.draftGroups` | 类型对齐（受 `TestFrontendTypesMatchSchema` 约束） | 低 |
+| 13 | `web/src/shared/lib/preview-backend.ts` | 浏览器预览端支持 `scope: 'draft'`；`draft.save` 同样保留已存的分组 | 预览与桌面行为一致 | 低 |
+| 14 | `web/src/shared/i18n/catalogs/*.json` | 分组文案与 2 个新错误码 | i18n | 低 |
+| 15 | `web/src/app/styles.css` | 分组区块、筛选条、拖拽落点与跟随光标标签的样式 | 样式 | 低 |
+| 16 | `web/src/features/library/library-layout.tsx` | `LibraryPage` 加 `toolbar` 插槽；票根支持拖拽属性 | 承载筛选栏与拖拽 | 中 |
+| 17 | `web/browser-tests/groups.spec.ts`（新增） | 分组的浏览器用例（折叠/筛选/菜单搬运/拖拽/不误触点击/作品保存不丢归属） | 回归防线 | 低 |
+| 18 | `internal/workbench/groups_test.go`（新增） | 三套作用域相互独立、保存不冲掉归属、分组协议边界 | 回归防线 | 低 |
+| 19 | `deploy-local.sh`（新增） | 把构建产物部署到本机已安装的 yovoice | 让定制真正生效 | 低 |
 
 **兼容性**：`groupId` 为空即「未分组」，老 `state.json` 无需迁移；
-一个分组也没有时两个列表页退化为原来的平铺列表，界面与上游一致。
+一个分组也没有时所有列表页退化为原来的平铺列表，界面与上游一致。
 折叠状态存在前端 `localStorage`（键 `yovoice.group.collapsed.<scope>`），不进 `state.json`。
+
+### 分组的四条约定（改之前先读）
+
+1. **三套作用域彼此独立**：`voice` / `character` / `draft` 各自一份分组列表，
+   同名分组互不影响，成员也只在自己那套里移动。前端 `GroupScope` 与 Go 的 `workbench.Scope*` 一一对应。
+2. **分组归属只由 `group.assign` 修改**。作品保存（`draft.save`）报文里的 `groupId` 可能已经过期
+   —— 编辑器里那份副本是在分组之前载入的 —— 所以两端都以已存的那份为准，**保存永远不动分组**。
+   这条不变量由 `TestDraftGroupSurvivesSave` 守着。
+3. **拖拽用手写指针事件，不用 HTML5 DnD**（WebView2 里 OS 级拖拽会话不可靠）。
+   监听挂在**捕获阶段**：卡片上的标题是按钮，按钮会在冒泡阶段截住 `pointerdown`，
+   挂在根节点的冒泡处理器收不到 —— 而标题正是用户最顺手抓的地方。
+4. **点击与拖拽的分界**：移动超过 5px 才算拖拽；拖完松手后补上来的那次 `click` 要吃掉，
+   否则会顺带打开作品。摘掉这个拦截器的时机是「那次 click 到了」或「用户又按下一次新指针」，
+   **不能用定时器** —— 留长了会吃掉用户的下一次正常点击，留短了会漏掉补上来的 click。
 
 「上游同步风险」填法：
 - **低** —— 改的是上游不会动的文件（新增文件、配置、文案）
@@ -194,7 +214,8 @@ make check         # 前端 + 核心全部检查
 
 脚本依次：构建前端与 Go 服务 → 备份到 `E:\AI\yovoice-backup-<时间戳>\` →
 停止 `yovoice.exe`（宿主会把 service 一起停掉，必须先停宿主）→ 替换两处 →
-校验 `index.html` 指向的文件确实存在 → 重新启动。
+校验 `index.html` 指向的文件确实存在，并在产物里找 `group.save` / `draftGroups` /
+`group-drag-chip` 三个标记，确认装进去的确实是带分组的版本 → 重新启动。
 
 **回滚**：把备份目录里的 `service/` 与 `web/` 复制回 `E:\AI\yovoice` 即可。
 

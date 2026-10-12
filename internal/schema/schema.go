@@ -124,7 +124,9 @@ type Draft struct {
 	SynthesisSettings
 	Kind        string            `json:"kind,omitempty"`
 	CharacterID string            `json:"characterId,omitempty"`
-	CreatedAt   *time.Time        `json:"createdAt,omitempty"`
+	// GroupID 指向 DraftGroups 里的一个分组，为空表示未分组。
+	GroupID   string     `json:"groupId,omitempty"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
 	UpdatedAt   *time.Time        `json:"updatedAt,omitempty"`
 	ID          string            `json:"id"`
 	Title       string            `json:"title"`
@@ -251,6 +253,7 @@ type State struct {
 	CharacterGroups []Group            `json:"characterGroups"`
 	Previews        []CharacterPreview `json:"previews"`
 	Drafts          []Draft            `json:"drafts"`
+	DraftGroups     []Group            `json:"draftGroups"`
 	Voices          []Voice            `json:"voices"`
 	VoiceGroups     []Group            `json:"voiceGroups"`
 	Models          []InstalledModel   `json:"models"`
@@ -274,5 +277,5 @@ type InstalledRuntime struct {
 }
 
 func DefaultState() State {
-	return State{Characters: []Character{}, CharacterGroups: []Group{}, Previews: []CharacterPreview{}, Drafts: []Draft{DefaultDraft()}, Voices: []Voice{}, VoiceGroups: []Group{}, Models: []InstalledModel{}, History: []Generation{}, Preferences: Preferences{DownloadSource: "modelscope", Backend: "cpu"}}
+	return State{Characters: []Character{}, CharacterGroups: []Group{}, Previews: []CharacterPreview{}, Drafts: []Draft{DefaultDraft()}, DraftGroups: []Group{}, Voices: []Voice{}, VoiceGroups: []Group{}, Models: []InstalledModel{}, History: []Generation{}, Preferences: Preferences{DownloadSource: "modelscope", Backend: "cpu"}}
 }

@@ -158,7 +158,9 @@ export function WorkbenchChrome({ state, catalog, engine, ready, session, error,
     return { ...current, text: joined, subtitles: { ...current.subtitles, cues, speakers: current.subtitles.speakers.map(speaker => speaker.id === activeSpeaker.id && Object.keys(settings).length ? { ...speaker, settings: synthesisSettings({ ...current, ...speaker.settings, ...settings }) } : speaker) } };
   }); };
   const [voiceTarget, setVoiceTarget] = useState<Character | null>(null);
-  const projectList = state.drafts.map(d => d.id === draft.id ? { ...draft, createdAt: d.createdAt, updatedAt: d.updatedAt } : d);
+  // 列表里当前打开的这一条要用编辑器里的实时内容（标题、正文），但 createdAt/updatedAt/groupId
+  // 只认已保存的那份：分组不在编辑器里改，如果跟着编辑缓冲走，刚分好组的作品会立刻显示成未分组。
+  const projectList = state.drafts.map(d => d.id === draft.id ? { ...draft, groupId: d.groupId, createdAt: d.createdAt, updatedAt: d.updatedAt } : d);
   const [voiceQuery, setVoiceQuery] = useState('');
   const [historyQuery, setHistoryQuery] = useState('');
   const openHistory = (item: Draft) => run(async () => { if (draftPersisted) await persistDraft(draft); setDraft(normalizeDraft(item)); setDraftPersisted(true); setHistoryQuery(''); setPreviewTrack(null); setPage('history'); });
@@ -255,7 +257,7 @@ export function WorkbenchChrome({ state, catalog, engine, ready, session, error,
         </Studio>
           </VStack>
           {(['story', 'text', 'music', 'score'] as const).map(kind => <VStack key={kind} className="page-panel" gap={0} style={{ display: page === kind ? 'flex' : 'none' }}>
-            <Projects onError={onError} kind={kind} drafts={projectList} open={selectDraft} history={openHistory} create={<NewProject kind={kind} locale={state.preferences.uiLocale} modelId={defaultModelId} create={newDraft} onError={onError} />} copy={item => run(() => newDraft({ ...structuredClone(item), id: crypto.randomUUID().replaceAll('-', ''), title: (item.title + t('@yovoice.draft.copySuffix')).slice(0, 120), createdAt: undefined, updatedAt: undefined }))} remove={setDeleteTarget} save={async next => { await persistDraft(draft); await persistDraft(next); if (next.id === draft.id) setDraft(next); }} />
+            <Projects onError={onError} kind={kind} drafts={projectList} groups={state.draftGroups ?? []} open={selectDraft} history={openHistory} create={<NewProject kind={kind} locale={state.preferences.uiLocale} modelId={defaultModelId} create={newDraft} onError={onError} />} copy={item => run(() => newDraft({ ...structuredClone(item), id: crypto.randomUUID().replaceAll('-', ''), title: (item.title + t('@yovoice.draft.copySuffix')).slice(0, 120), createdAt: undefined, updatedAt: undefined }))} remove={setDeleteTarget} save={async next => { await persistDraft(draft); await persistDraft(next); if (next.id === draft.id) setDraft(next); }} />
           </VStack>)}
           <VStack id="voice-library-panel" className="page-panel" gap={0} style={{ display: page === 'characters' ? 'flex' : 'none' }}>
             <CharacterLibrary controls={libraryTabs} active={page === 'characters' && !voiceTarget && !characterActive} create={createVoice} state={state} catalog={catalog} edit={editCharacter} apply={setVoiceTarget} onError={onError} />

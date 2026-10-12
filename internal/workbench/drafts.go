@@ -49,6 +49,10 @@ func (w *Workbench) saveDraft(d schema.Draft) (err error) {
 		if i >= 0 {
 			d.CreatedAt = s.Drafts[i].CreatedAt
 			d.UpdatedAt = s.Drafts[i].UpdatedAt
+			// 分组只由 group.assign 修改。保存报文的 groupId 可能已经过期 ——
+			// 编辑器里那份副本是在分组之前载入的，照单全收会把刚分好的组冲掉。
+			// 所以这里一律以已存的那份为准，让保存永远不动分组归属。
+			d.GroupID = s.Drafts[i].GroupID
 			before, _ := json.Marshal(s.Drafts[i])
 			after, _ := json.Marshal(d)
 			if string(before) == string(after) {
