@@ -1,0 +1,13 @@
+# 换行符规范化
+# 本仓库在 Windows 上开发，core.autocrlf=true 会把脚本也转成 CRLF，
+# 导致 Git Bash / MSYS2 下运行报 "bad interpreter"。
+# 以下规则强制脚本类文件在工作区保持 LF。
+
+*.sh      text eol=lf
+*.bash    text eol=lf
+Makefile  text eol=lf
+
+# Windows 原生脚本保持 CRLF
+*.ps1     text eol=crlf
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
