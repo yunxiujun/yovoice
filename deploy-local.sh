@@ -84,7 +84,9 @@ say "同步 web（robocopy /MIR）"
 SRC="$(cygpath -w "$STAGE/web")"
 DST="$(cygpath -w "$APP/web")"
 set +e
-robocopy "$SRC" "$DST" /MIR /NFL /NDL /NJH /NJS /NP >/dev/null
+# MSYS_NO_PATHCONV 必须给：否则 Git Bash 会把 /MIR 之类的开关当成路径改写，
+# robocopy 收到无效参数直接以 16 号错误退出（什么都没复制）。
+MSYS_NO_PATHCONV=1 robocopy "$SRC" "$DST" /MIR /NFL /NDL /NJH /NJS /NP >/dev/null
 rc=$?
 set -e
 # robocopy 约定：0-7 为成功（1=有文件被复制，2=有多余文件被删…），>=8 才是失败。
