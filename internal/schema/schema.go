@@ -147,8 +147,17 @@ type CharacterPreview struct {
 	Text     string            `json:"text"`
 }
 
+// Group 是声音库中的分组。参考音色与角色各维护一套互不相干的分组，
+// 因此同一个 ID 在两个集合里互不影响。条目未归属任何分组时 GroupID 为空串。
+type Group struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 type Character struct {
 	Performances []CharacterPerformance `json:"performances,omitempty"`
+	GroupID      string                 `json:"groupId,omitempty"`
 	ID           string                 `json:"id"`
 	Name         string                 `json:"name"`
 	Settings     SynthesisSettings      `json:"settings"`
@@ -162,6 +171,7 @@ type Voice struct {
 	ReferenceText      string  `json:"referenceText,omitempty"`
 	Source             string  `json:"source,omitempty"`
 	SourceGenerationID string  `json:"sourceGenerationId,omitempty"`
+	GroupID            string  `json:"groupId,omitempty"`
 	ID                 string  `json:"id"`
 	Name               string  `json:"name"`
 	FileName           string  `json:"fileName"`
@@ -237,16 +247,18 @@ type Preferences struct {
 	AITimeout int `json:"aiTimeout,omitempty"`
 }
 type State struct {
-	Characters     []Character        `json:"characters"`
-	Previews       []CharacterPreview `json:"previews"`
-	Drafts         []Draft            `json:"drafts"`
-	Voices         []Voice            `json:"voices"`
-	Models         []InstalledModel   `json:"models"`
-	History        []Generation       `json:"history"`
-	Preferences    Preferences        `json:"preferences"`
-	RuntimePath    *string            `json:"runtimePath"`
-	RuntimeBackend *string            `json:"runtimeBackend"`
-	RuntimeVersion *string            `json:"runtimeVersion"`
+	Characters      []Character        `json:"characters"`
+	CharacterGroups []Group            `json:"characterGroups"`
+	Previews        []CharacterPreview `json:"previews"`
+	Drafts          []Draft            `json:"drafts"`
+	Voices          []Voice            `json:"voices"`
+	VoiceGroups     []Group            `json:"voiceGroups"`
+	Models          []InstalledModel   `json:"models"`
+	History         []Generation       `json:"history"`
+	Preferences     Preferences        `json:"preferences"`
+	RuntimePath     *string            `json:"runtimePath"`
+	RuntimeBackend  *string            `json:"runtimeBackend"`
+	RuntimeVersion  *string            `json:"runtimeVersion"`
 	// Runtimes 按后端记录下载安装的内核，切换计算设备后再切回时直接复用。
 	Runtimes map[string]InstalledRuntime `json:"runtimes,omitempty"`
 	Activity *Activity                   `json:"activity"`
@@ -262,5 +274,5 @@ type InstalledRuntime struct {
 }
 
 func DefaultState() State {
-	return State{Characters: []Character{}, Previews: []CharacterPreview{}, Drafts: []Draft{DefaultDraft()}, Voices: []Voice{}, Models: []InstalledModel{}, History: []Generation{}, Preferences: Preferences{DownloadSource: "modelscope", Backend: "cpu"}}
+	return State{Characters: []Character{}, CharacterGroups: []Group{}, Previews: []CharacterPreview{}, Drafts: []Draft{DefaultDraft()}, Voices: []Voice{}, VoiceGroups: []Group{}, Models: []InstalledModel{}, History: []Generation{}, Preferences: Preferences{DownloadSource: "modelscope", Backend: "cpu"}}
 }

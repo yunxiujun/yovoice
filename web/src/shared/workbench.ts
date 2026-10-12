@@ -35,7 +35,9 @@ export type ProjectPage = 'text' | 'story' | 'music' | 'score';
 // 旧字幕作品沿用原始数据，统一归入故事。
 export const projectKind = (draft: Draft): ProjectPage => draft.kind === 'music' || draft.kind === 'score' ? draft.kind : draft.subtitles || draft.kind === 'story' || draft.kind === 'subtitle' ? 'story' : 'text';
 export interface CharacterPreview { id: string; fileName: string; duration: number; settings: SynthesisSettings; text: string }
-export interface Character { performances?: CharacterPerformance[]; id: string; name: string; settings: SynthesisSettings; demoText: string; preview?: CharacterPreview; createdAt?: string; updatedAt?: string }
+/** 声音库分组。groupId 为空即未分组；参考音色与角色各自维护一套互不相干的分组。 */
+export interface Group { id: string; name: string; createdAt: string }
+export interface Character { performances?: CharacterPerformance[]; groupId?: string; id: string; name: string; settings: SynthesisSettings; demoText: string; preview?: CharacterPreview; createdAt?: string; updatedAt?: string }
 export const synthesisSettings = ({ performance: _performance, id: _id, title: _title, text: _text, kind: _kind, characterId: _characterId, createdAt: _createdAt, updatedAt: _updatedAt, subtitles: _subtitles, timeline: _timeline, score: _score, ...settings }: Draft): SynthesisSettings => structuredClone(settings);
 // 参数键的序列化顺序不影响试听是否过期。
 export const stableJSON = (value: unknown): string => JSON.stringify(value, (_, item) => item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
@@ -55,7 +57,7 @@ export function cueAudioStatus(draft: Draft, history: Generation[], cue: Subtitl
   if (!generation) return 'missing';
   return generation.settings.text === cue.text && generation.segment?.speakerId === cue.speakerId && stableJSON(comparableSettings(synthesisSettings(generation.settings))) === stableJSON(comparableSettings(cueSettings(draft, cue))) ? 'ready' : 'stale';
 }
-export interface Voice { referenceText?: string; source?: string; sourceGenerationId?: string; id: string; name: string; fileName: string; duration: number }
+export interface Voice { referenceText?: string; source?: string; sourceGenerationId?: string; groupId?: string; id: string; name: string; fileName: string; duration: number }
 export interface ModelFile { path: string; size: number; sha256: string }
 export interface ModelPackage { voices?: string[]; variant?: string; loadOptions?: Record<string, string>; sessionOptions?: Record<string, string>; files?: ModelFile[]; directory?: string; task?: string; engineMinimum?: string; family: string; id: string; name: string; version: string; precision: string; remotePath: string; size: number; sha256: string }
 export interface InstalledModel { id: string; path: string; managed: boolean }
@@ -84,7 +86,7 @@ export interface Activity {
 }
 export interface Preferences { downloadSource: string; backend: string; modelDirectory: string | null; uiLocale: UiLocale; proxyURL?: string; proxyEnabled?: boolean; aiTimeout?: number }
 export interface State {
-  characters: Character[]; previews: CharacterPreview[]; drafts: Draft[]; voices: Voice[]; models: InstalledModel[]; history: Generation[];
+  characters: Character[]; characterGroups?: Group[]; previews: CharacterPreview[]; drafts: Draft[]; voices: Voice[]; voiceGroups?: Group[]; models: InstalledModel[]; history: Generation[];
   preferences: Preferences; runtimePath: string | null; runtimeBackend: string | null; runtimeVersion: string | null; runtimes?: Record<string, { path: string; version: string }>; activity: Activity | null;
   aiProviders?: AIProvider[]; aiProviderID?: string; aiTask?: AITask;
 }
@@ -113,7 +115,7 @@ export const createDraft = (example = false, locale: UiLocale = 'zh-CN', modelId
   intervalSilenceMs: 200, doSample: true, numBeams: 3, lengthPenalty: 0, seed: null,
 };
 };
-export const emptyState = (): State => ({ characters: [], previews: [], drafts: [createDraft(true)], voices: [], models: [], history: [], preferences: { downloadSource: 'modelscope', backend: 'cpu', modelDirectory: null, uiLocale: 'zh-CN' }, runtimePath: null, runtimeBackend: null, runtimeVersion: null, activity: null });
+export const emptyState = (): State => ({ characters: [], characterGroups: [], previews: [], drafts: [createDraft(true)], voices: [], voiceGroups: [], models: [], history: [], preferences: { downloadSource: 'modelscope', backend: 'cpu', modelDirectory: null, uiLocale: 'zh-CN' }, runtimePath: null, runtimeBackend: null, runtimeVersion: null, activity: null });
 // version 是推荐安装的 audio.cpp 版本，minimum 是当前应用可用的最低版本。
 export interface EngineInfo { version: string; minimum: string }
 // 服务未报告版本要求（如浏览器预览）时不做限制。

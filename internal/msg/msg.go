@@ -15,6 +15,8 @@ const (
 	ErrVoiceReferenced        Code = "@yovoice.error.voiceReferenced"
 	ErrVoiceInUse             Code = "@yovoice.error.voiceInUse"
 	ErrCharacterInvalid       Code = "@yovoice.error.characterInvalid"
+	ErrGroupInvalid           Code = "@yovoice.error.groupInvalid"
+	ErrGroupLimit             Code = "@yovoice.error.groupLimit"
 
 	ErrModelImportRequired      Code = "@yovoice.error.modelImportRequired"
 	ErrOmniReferenceRequired    Code = "@yovoice.error.omniReferenceRequired"
@@ -161,7 +163,7 @@ func Encode(err error) map[string]any {
 // All lists every Code constant for catalog coverage checks.
 func All() []Code {
 	return []Code{ErrProjectPackage, ErrProjectPackageLimit, ErrTimelineImportDuration, ErrTimelineInvalid, ErrTimelineInUse, ErrSubtitleInvalid, ActivitySubtitle,
-		ErrVoiceInUse, ErrVoiceReferenced, ErrCharacterInvalid,
+		ErrVoiceInUse, ErrVoiceReferenced, ErrCharacterInvalid, ErrGroupInvalid, ErrGroupLimit,
 		ErrModelImportRequired,
 		ErrOmniReferenceRequired,
 		ErrVoiceDescriptionRequired, ErrOmniAttributes, ErrSpeakerInvalid,

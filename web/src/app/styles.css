@@ -270,6 +270,15 @@
   .history-info small { flex-shrink: 0; }
   .history-group-heading { padding-block: var(--spacing-3); border-bottom: var(--border-width) solid var(--app-line); }
   .history-group + .history-group { margin-top: var(--spacing-4); }
+  /* 声音库分组：区块之间留白，标题下压一条细线；「未分组」用弱化的标题色区分。 */
+  .group-section + .group-section { margin-top: var(--spacing-6); }
+  .group-heading { padding-block: var(--spacing-2); border-bottom: var(--border-width) solid var(--app-line); }
+  .group-heading-label { min-width: 0; }
+  .group-heading h2 { margin: 0; font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .group-heading[data-detached="true"] h2 { color: var(--app-muted); }
+  .group-count { flex-shrink: 0; color: var(--app-muted); font-size: var(--app-small-font); font-variant-numeric: tabular-nums; }
+  .group-empty-hint { padding-block: var(--spacing-2); color: var(--app-muted); font-size: var(--app-small-font); }
+  .group-actions-menu,.group-move-menu { min-width: calc(var(--spacing-10) * 5); }
   .history-meta { color: var(--app-muted); font-size: var(--app-small-font); }
   .audio-actions-menu { min-width: calc(var(--spacing-10) * 5); }
   .history-row small { font-variant-numeric: tabular-nums; white-space: nowrap; }

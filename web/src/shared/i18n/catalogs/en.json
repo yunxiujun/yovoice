@@ -1508,6 +1508,45 @@
   "@yovoice.error.characterInvalid": {
     "defaultMessage": "Invalid character or voice details. Check the name, script length and record."
   },
+  "@yovoice.error.groupInvalid": {
+    "defaultMessage": "Invalid group. Check that the name is not empty, too long or duplicated, and that the group still exists."
+  },
+  "@yovoice.error.groupLimit": {
+    "defaultMessage": "Group limit reached. Delete unused groups first."
+  },
+  "@yovoice.group.new": {
+    "defaultMessage": "New group"
+  },
+  "@yovoice.group.rename": {
+    "defaultMessage": "Rename group"
+  },
+  "@yovoice.group.delete": {
+    "defaultMessage": "Delete group"
+  },
+  "@yovoice.group.move": {
+    "defaultMessage": "Move to group"
+  },
+  "@yovoice.group.ungrouped": {
+    "defaultMessage": "Ungrouped"
+  },
+  "@yovoice.group.name": {
+    "defaultMessage": "Group name"
+  },
+  "@yovoice.group.more": {
+    "defaultMessage": "Group actions"
+  },
+  "@yovoice.group.count": {
+    "defaultMessage": "{count} items"
+  },
+  "@yovoice.group.empty": {
+    "defaultMessage": "Nothing in this group yet"
+  },
+  "@yovoice.group.duplicate": {
+    "defaultMessage": "A group with this name already exists."
+  },
+  "@yovoice.group.deleteConfirm": {
+    "defaultMessage": "Items in this group go back to Ungrouped. Nothing is deleted."
+  },
   "@yovoice.character.clearReferences": {
     "defaultMessage": "Remove voice references"
   },

@@ -28,13 +28,16 @@ func Call(ctx context.Context, w *workbench.Workbench, method string, data json.
 		}
 	}()
 	var p struct {
-		ID            string `json:"id"`
-		Kind          string `json:"kind"`
-		Name          string `json:"name"`
-		Path          string `json:"path"`
-		Base64        string `json:"base64"`
-		ReferenceText string `json:"referenceText"`
-		Model         string `json:"model"`
+		ID            string   `json:"id"`
+		Kind          string   `json:"kind"`
+		Name          string   `json:"name"`
+		Path          string   `json:"path"`
+		Base64        string   `json:"base64"`
+		ReferenceText string   `json:"referenceText"`
+		GroupID       string   `json:"groupId"`
+		Scope         string   `json:"scope"`
+		Model         string   `json:"model"`
+		IDs           []string `json:"ids"`
 	}
 	if len(data) == 0 || string(data) == "null" {
 		return nil, msg.Err(msg.ErrRequestInvalid, nil)
@@ -97,7 +100,7 @@ func Call(ctx context.Context, w *workbench.Workbench, method string, data json.
 	case "voice.fromGeneration":
 		return w.VoiceFromGeneration(p.ID, p.Name, p.ReferenceText)
 	case "voice.update":
-		return true, w.UpdateVoice(p.ID, p.Name, p.ReferenceText)
+		return true, w.UpdateVoice(p.ID, p.Name, p.ReferenceText, p.GroupID)
 	case "voice.import":
 		return w.ImportVoice(ctx, p.Path, "")
 	case "voice.record", "timeline.import":
@@ -109,6 +112,12 @@ func Call(ctx context.Context, w *workbench.Workbench, method string, data json.
 			return w.ImportTimelineFrom(ctx, bytes.NewReader(b), p.Name)
 		}
 		return w.ImportVoiceFrom(ctx, bytes.NewReader(b), p.Name)
+	case "group.save":
+		return w.SaveGroup(p.Scope, p.ID, p.Name)
+	case "group.delete":
+		return true, w.DeleteGroup(p.Scope, p.ID)
+	case "group.assign":
+		return true, w.AssignGroup(p.Scope, p.GroupID, p.IDs)
 	case "media.path":
 		return w.MediaFile(p.Kind, p.ID)
 	case "media.rename":

@@ -1508,6 +1508,45 @@
   "@yovoice.error.characterInvalid": {
     "defaultMessage": "角色或音色信息无效，请检查名称、台词长度及记录是否存在。"
   },
+  "@yovoice.error.groupInvalid": {
+    "defaultMessage": "分组信息无效，请检查名称是否为空、是否过长或重名，以及分组是否已被删除。"
+  },
+  "@yovoice.error.groupLimit": {
+    "defaultMessage": "分组数量已达上限，请先删除不用的分组。"
+  },
+  "@yovoice.group.new": {
+    "defaultMessage": "新建分组"
+  },
+  "@yovoice.group.rename": {
+    "defaultMessage": "重命名分组"
+  },
+  "@yovoice.group.delete": {
+    "defaultMessage": "删除分组"
+  },
+  "@yovoice.group.move": {
+    "defaultMessage": "移动到分组"
+  },
+  "@yovoice.group.ungrouped": {
+    "defaultMessage": "未分组"
+  },
+  "@yovoice.group.name": {
+    "defaultMessage": "分组名称"
+  },
+  "@yovoice.group.more": {
+    "defaultMessage": "分组操作"
+  },
+  "@yovoice.group.count": {
+    "defaultMessage": "{count} 项"
+  },
+  "@yovoice.group.empty": {
+    "defaultMessage": "这个分组还没有内容"
+  },
+  "@yovoice.group.duplicate": {
+    "defaultMessage": "已有同名分组，请换一个名称。"
+  },
+  "@yovoice.group.deleteConfirm": {
+    "defaultMessage": "删除分组后，组内的内容会回到「未分组」，不会被删除。"
+  },
   "@yovoice.character.clearReferences": {
     "defaultMessage": "解除音色引用"
   },

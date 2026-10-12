@@ -32,7 +32,20 @@ origin/main     ──┤  (你自己的 fork，仅作镜像备份)
 
 | # | 文件 / 模块 | 改了什么 | 为什么 | 上游同步风险 |
 | - | ----------- | -------- | ------ | ------------ |
-| — | *(暂无)* | | | |
+| 1 | `internal/schema/schema.go` | 新增 `Group` 结构；`Voice`/`Character` 加 `GroupID`；`State` 加 `voiceGroups`/`characterGroups` | 分组数据模型 | 中 |
+| 2 | `internal/workbench/groups.go`（新增） | 分组的增删改与成员归属 | 分组业务逻辑 | 低 |
+| 3 | `internal/workbench/library.go` | `UpdateVoice` 加 `groupID` 参数；`SaveCharacter` 校验分组 | 保存时带上分组 | 中 |
+| 4 | `internal/desktop/rpc.go` | 新增 `group.save`/`group.delete`/`group.assign`；`voice.update` 传 `groupId` | 接口暴露 | 中 |
+| 5 | `internal/msg/msg.go` | 新增 `ErrGroupInvalid`/`ErrGroupLimit` 及 `All()` 登记 | 错误提示 | 低 |
+| 6 | `web/src/features/library/groups.tsx`（新增） | 分组区块、移动菜单、对话框与状态机 | 两个列表页共用 | 低 |
+| 7 | `web/src/features/library/media-library.tsx` | 参考音色按分组区块展示 | 定制需求 | 中 |
+| 8 | `web/src/features/library/characters.tsx` | 角色库按分组区块展示 | 定制需求 | 中 |
+| 9 | `web/src/shared/workbench.ts` | 补 `Group` 类型与 `groupId` 字段 | 类型对齐 | 低 |
+| 10 | `web/src/shared/i18n/catalogs/*.json` | 分组文案与 2 个新错误码 | i18n | 低 |
+| 11 | `web/src/app/styles.css` | 分组区块样式 | 样式 | 低 |
+
+**兼容性**：`groupId` 为空即「未分组」，老 `state.json` 无需迁移；
+一个分组也没有时两个列表页退化为原来的平铺列表，界面与上游一致。
 
 「上游同步风险」填法：
 - **低** —— 改的是上游不会动的文件（新增文件、配置、文案）

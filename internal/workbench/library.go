@@ -204,7 +204,7 @@ func (w *Workbench) VoiceFromGeneration(id, name, referenceText string) (schema.
 	return w.importVoice(context.Background(), path, name, referenceText, id)
 }
 
-func (w *Workbench) UpdateVoice(id, name, referenceText string) error {
+func (w *Workbench) UpdateVoice(id, name, referenceText, groupID string) error {
 	if !schema.ValidID(id) {
 		return msg.Err(msg.ErrCharacterInvalid, nil)
 	}
@@ -214,6 +214,9 @@ func (w *Workbench) UpdateVoice(id, name, referenceText string) error {
 	if strings.TrimSpace(name) == "" || schema.TextLen(name) > 100 || schema.TextLen(referenceText) > 2000 {
 		return msg.Err(msg.ErrCharacterInvalid, nil)
 	}
+	if !groupExists(&state, ScopeVoice, groupID) {
+		return msg.Err(msg.ErrGroupInvalid, nil)
+	}
 	index := slices.IndexFunc(state.Voices, func(v schema.Voice) bool { return v.ID == id })
 	if index < 0 {
 		return msg.Err(msg.ErrAudioMissing, nil)
@@ -221,6 +224,7 @@ func (w *Workbench) UpdateVoice(id, name, referenceText string) error {
 	return w.Store.Update(func(s *schema.State) {
 		s.Voices[index].Name = strings.TrimSpace(name)
 		s.Voices[index].ReferenceText = referenceText
+		s.Voices[index].GroupID = groupID
 	}, true)
 }
 

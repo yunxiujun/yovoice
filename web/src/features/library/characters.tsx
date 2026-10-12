@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
-import { Ellipsis, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Ellipsis, FolderPlus, Pencil, Plus, Trash2 } from 'lucide-react';
 import { AppDialog, ConfirmDelete } from '../../shared/ui/app-dialog';
 import { LibraryEmpty, LibraryPage, Ticket, TicketStamp } from './library-layout';
+import { GroupActions, GroupEmpty, GroupHeading, GroupMoveMenu, sectionize, useGroupEditing } from './groups';
 import { RecordCover } from './record-cover';
 import { Studio } from '../create/studio';
 import { Selector } from '../../shared/selector';
@@ -135,25 +136,45 @@ export function CharacterLibrary({ state, catalog, create, edit, apply, onError,
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const characters = state.characters ?? [];
+  const groups = state.characterGroups ?? [];
+  const groupEditing = useGroupEditing('character', groups, onError);
+  const searching = query.trim().length > 0;
   const filtered = characters.filter(c => c.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+  // 有分组时按区块展示，一个分组也没有时保持原来的平铺列表。
+  const sections = groups.length > 0 ? sectionize(filtered, groups, c => c.groupId, searching) : null;
+  // 角色是一张单曲唱片：头像是唱片标签，点卡片试听，播放时唱片转动；存根记着有几种演绎。
+  const characterRow = (c: Character, index: number) => <Ticket key={c.id} index={index} className="character-row"
+    cover={<RecordCover seed={c.id} interactive><Player compact avatar={{ seed: c.id, label: t('@yovoice.character.listen'), disabled: !c.preview, select: () => setPlaying(c.id) }} suspended={!active || !!deleting} track={playing === c.id && c.preview ? { id: c.preview.id, name: c.name, fileName: c.preview.fileName, kind: 'outputs', subtitle: '', playRequest: 1 } : null} onError={onError} /></RecordCover>}
+    eyebrow={[catalog.find(m => m.id === c.settings.modelId)?.name ?? c.settings.modelId, t(!c.preview ? '@yovoice.character.emptyPreview' : previewStale(c) ? '@yovoice.character.stale' : '@yovoice.character.ready')].join(' · ')}
+    title={<h3 onPointerEnter={overflowTitle}>{c.name}</h3>} excerpt={c.demoText.trim()}
+    stub={<TicketStamp value={(c.performances?.length ?? 0) + 1} unit={t('@yovoice.library.performanceUnit')} />}
+    actions={<>
+      <Button size="sm" label={t('@yovoice.character.apply')} onClick={() => apply(c)} />
+      {groups.length > 0 ? <GroupMoveMenu groups={groups} current={c.groupId} onMove={groupId => groupEditing.move([c.id], groupId)} /> : null}
+      <Button size="sm" variant="ghost" isIconOnly icon={<Pencil />} label={t('@yovoice.character.edit')} onClick={() => { setPlaying(null); edit(c); }} />
+      <Button size="sm" variant="ghost" isIconOnly icon={<Trash2 />} label={t('@yovoice.character.delete')} onClick={() => { setError(''); setDeleting(c); }} />
+    </>} />;
   return <>
     <LibraryPage title={t('@yovoice.nav.library')} controls={controls} layout="tickets"
-      actions={characters.length ? <Button label={t('@yovoice.character.create')} size="sm" icon={<Plus />} onClick={create} /> : undefined}
+      actions={characters.length ? <HStack gap={2}>
+        <Button label={t('@yovoice.group.new')} size="sm" variant="secondary" icon={<FolderPlus />} onClick={groupEditing.openCreate} />
+        <Button label={t('@yovoice.character.create')} size="sm" icon={<Plus />} onClick={create} />
+      </HStack> : undefined}
       query={query} onQueryChange={setQuery} searchLabel={t('@yovoice.character.search')}
       hasItems={characters.length > 0} hasResults={filtered.length > 0} noResults={t('@yovoice.character.noResults')}
       empty={<LibraryEmpty art={<RecordCover seed="empty-character" title={t('@yovoice.library.voicesTab')} />} title={t('@yovoice.character.empty')} action={<Button label={t('@yovoice.character.create')} size="sm" icon={<Plus />} onClick={create} />} />}>
-      {/* 角色是一张单曲唱片：头像是唱片标签，点卡片试听，播放时唱片转动；存根记着有几种演绎。 */}
-      {filtered.map((c, index) => <Ticket key={c.id} index={index} className="character-row"
-        cover={<RecordCover seed={c.id} interactive><Player compact avatar={{ seed: c.id, label: t('@yovoice.character.listen'), disabled: !c.preview, select: () => setPlaying(c.id) }} suspended={!active || !!deleting} track={playing === c.id && c.preview ? { id: c.preview.id, name: c.name, fileName: c.preview.fileName, kind: 'outputs', subtitle: '', playRequest: 1 } : null} onError={onError} /></RecordCover>}
-        eyebrow={[catalog.find(m => m.id === c.settings.modelId)?.name ?? c.settings.modelId, t(!c.preview ? '@yovoice.character.emptyPreview' : previewStale(c) ? '@yovoice.character.stale' : '@yovoice.character.ready')].join(' · ')}
-        title={<h3 onPointerEnter={overflowTitle}>{c.name}</h3>} excerpt={c.demoText.trim()}
-        stub={<TicketStamp value={(c.performances?.length ?? 0) + 1} unit={t('@yovoice.library.performanceUnit')} />}
-        actions={<>
-          <Button size="sm" label={t('@yovoice.character.apply')} onClick={() => apply(c)} />
-          <Button size="sm" variant="ghost" isIconOnly icon={<Pencil />} label={t('@yovoice.character.edit')} onClick={() => { setPlaying(null); edit(c); }} />
-          <Button size="sm" variant="ghost" isIconOnly icon={<Trash2 />} label={t('@yovoice.character.delete')} onClick={() => { setError(''); setDeleting(c); }} />
-        </>} />)}
+      {sections
+        ? sections.map(section => {
+          const group = section.group;
+          return <VStack key={group?.id ?? 'ungrouped'} className="group-section" gap={3}>
+            <GroupHeading name={group ? group.name : t('@yovoice.group.ungrouped')} count={section.items.length} detached={!group}
+              actions={group ? <GroupActions onRename={() => groupEditing.openRename(group)} onDelete={() => groupEditing.openDelete(group)} /> : null} />
+            {section.items.length === 0 ? <GroupEmpty text={t('@yovoice.group.empty')} /> : section.items.map(characterRow)}
+          </VStack>;
+        })
+        : filtered.map(characterRow)}
     </LibraryPage>
+    {groupEditing.dialogs}
     {deleting ? <ConfirmDelete title={t('@yovoice.character.delete')} description={`${deleting.name} — ${t('@yovoice.character.deleteConfirm')}`}
       confirmLabel={t('@yovoice.character.delete')} busy={saving} error={formatNotice(t, error)} onClose={() => setDeleting(null)}
       onConfirm={() => { setSaving(true); setError(''); void call('character.delete', { id: deleting.id }).then(() => { setDeleting(null); setPlaying(null); }).catch(e => setError(formatCallError(t, e))).finally(() => setSaving(false)); }} /> : null}
