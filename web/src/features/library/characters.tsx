@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Ellipsis, FolderPlus, Pencil, Plus, Trash2 } from 'lucide-react';
 import { AppDialog, ConfirmDelete } from '../../shared/ui/app-dialog';
 import { LibraryEmpty, LibraryPage, Ticket, TicketStamp } from './library-layout';
-import { GroupActions, GroupEmpty, GroupHeading, GroupMoveMenu, sectionize, useGroupEditing } from './groups';
+import { countByGroup, GroupActions, GroupEmpty, GroupFilter, GroupHeading, GroupMoveMenu, matchesGroup, sectionize, UNGROUPED_KEY, useGroupCollapse, useGroupEditing } from './groups';
 import { RecordCover } from './record-cover';
 import { Studio } from '../create/studio';
 import { Selector } from '../../shared/selector';
@@ -138,12 +138,19 @@ export function CharacterLibrary({ state, catalog, create, edit, apply, onError,
   const characters = state.characters ?? [];
   const groups = state.characterGroups ?? [];
   const groupEditing = useGroupEditing('character', groups, onError);
+  const { collapsed, toggle } = useGroupCollapse('character');
+  const [filter, setFilter] = useState<string | null>(null);
   const searching = query.trim().length > 0;
   const filtered = characters.filter(c => c.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
-  // 有分组时按区块展示，一个分组也没有时保持原来的平铺列表。
-  const sections = groups.length > 0 ? sectionize(filtered, groups, c => c.groupId, searching) : null;
+  // 筛选指向的分组可能已经被删掉了，这种情况按「全部」处理。
+  const activeFilter = filter !== null && filter !== '' && !groups.some(group => group.id === filter) ? null : filter;
+  const listed = filtered.filter(c => matchesGroup(c, groups, item => item.groupId, activeFilter));
+  const { counts, ungrouped } = countByGroup(filtered, groups, item => item.groupId);
+  // 选定某个分组时平铺该组全部角色；「全部」按分组分区浏览。一个分组都没有时保持原来的平铺列表。
+  const sections = groups.length > 0 && activeFilter === null ? sectionize(filtered, groups, c => c.groupId, searching) : null;
   // 角色是一张单曲唱片：头像是唱片标签，点卡片试听，播放时唱片转动；存根记着有几种演绎。
   const characterRow = (c: Character, index: number) => <Ticket key={c.id} index={index} className="character-row"
+    drag={groups.length > 0 ? groupEditing.dragProps(c.id, c.groupId) : undefined}
     cover={<RecordCover seed={c.id} interactive><Player compact avatar={{ seed: c.id, label: t('@yovoice.character.listen'), disabled: !c.preview, select: () => setPlaying(c.id) }} suspended={!active || !!deleting} track={playing === c.id && c.preview ? { id: c.preview.id, name: c.name, fileName: c.preview.fileName, kind: 'outputs', subtitle: '', playRequest: 1 } : null} onError={onError} /></RecordCover>}
     eyebrow={[catalog.find(m => m.id === c.settings.modelId)?.name ?? c.settings.modelId, t(!c.preview ? '@yovoice.character.emptyPreview' : previewStale(c) ? '@yovoice.character.stale' : '@yovoice.character.ready')].join(' · ')}
     title={<h3 onPointerEnter={overflowTitle}>{c.name}</h3>} excerpt={c.demoText.trim()}
@@ -160,19 +167,25 @@ export function CharacterLibrary({ state, catalog, create, edit, apply, onError,
         <Button label={t('@yovoice.group.new')} size="sm" variant="secondary" icon={<FolderPlus />} onClick={groupEditing.openCreate} />
         <Button label={t('@yovoice.character.create')} size="sm" icon={<Plus />} onClick={create} />
       </HStack> : undefined}
+      toolbar={groups.length > 0 ? <GroupFilter groups={groups} value={activeFilter} counts={counts} ungrouped={ungrouped}
+        onChange={setFilter} drop={groupEditing.dropProps} /> : undefined}
       query={query} onQueryChange={setQuery} searchLabel={t('@yovoice.character.search')}
-      hasItems={characters.length > 0} hasResults={filtered.length > 0} noResults={t('@yovoice.character.noResults')}
+      hasItems={characters.length > 0} hasResults={listed.length > 0} noResults={t('@yovoice.character.noResults')}
       empty={<LibraryEmpty art={<RecordCover seed="empty-character" title={t('@yovoice.library.voicesTab')} />} title={t('@yovoice.character.empty')} action={<Button label={t('@yovoice.character.create')} size="sm" icon={<Plus />} onClick={create} />} />}>
       {sections
         ? sections.map(section => {
           const group = section.group;
-          return <VStack key={group?.id ?? 'ungrouped'} className="group-section" gap={3}>
+          // 「未分组」用单独的键，免得和真实分组 ID 撞车。
+          const key = group ? group.id : UNGROUPED_KEY;
+          const folded = collapsed.includes(key);
+          return <VStack key={key} className="group-section" gap={3} data-collapsed={folded}>
             <GroupHeading name={group ? group.name : t('@yovoice.group.ungrouped')} count={section.items.length} detached={!group}
+              collapsed={folded} onToggle={() => toggle(key)} drop={groupEditing.dropProps(group ? group.id : '')}
               actions={group ? <GroupActions onRename={() => groupEditing.openRename(group)} onDelete={() => groupEditing.openDelete(group)} /> : null} />
-            {section.items.length === 0 ? <GroupEmpty text={t('@yovoice.group.empty')} /> : section.items.map(characterRow)}
+            {folded ? null : section.items.length === 0 ? <GroupEmpty text={t('@yovoice.group.empty')} /> : section.items.map(characterRow)}
           </VStack>;
         })
-        : filtered.map(characterRow)}
+        : listed.map(characterRow)}
     </LibraryPage>
     {groupEditing.dialogs}
     {deleting ? <ConfirmDelete title={t('@yovoice.character.delete')} description={`${deleting.name} — ${t('@yovoice.character.deleteConfirm')}`}

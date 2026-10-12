@@ -49,3 +49,64 @@ test('角色库支持分组，删除分组后角色回到未分组', async ({ pa
   await expect(page.getByRole('heading', { name: '角色甲' })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('voice-workbench-v1') ?? '{}').characters?.[0]?.groupId ?? null)).toBeNull();
 });
+
+// 分组标题上的折叠按钮：收起后组内条目隐藏，再点一次恢复。
+test('分组可以折叠收起再展开', async ({ page }) => {
+  const narration = hex('3');
+  const state: State = { ...emptyState(), voices: [voice(hex('a'), '甲音色', narration), voice(hex('b'), '乙音色')], voiceGroups: [group(narration, '旁白组')] };
+  await seedState(page, state);
+  await page.goto('/');
+  await page.getByTestId('nav-characters').click();
+  await page.getByRole('tab', { name: '参考音频' }).click();
+  const grouped = page.locator('.group-section').filter({ has: page.getByRole('heading', { name: '旁白组' }) });
+  await expect(grouped.getByRole('heading', { name: '甲音色' })).toBeVisible();
+  await grouped.getByRole('button', { name: '折叠分组' }).click();
+  await expect(grouped.getByRole('heading', { name: '甲音色' })).toBeHidden();
+  // 折叠只影响这一个分组，别的区块不受牵连
+  await expect(page.getByRole('heading', { name: '乙音色' })).toBeVisible();
+  await grouped.getByRole('button', { name: '展开分组' }).click();
+  await expect(grouped.getByRole('heading', { name: '甲音色' })).toBeVisible();
+});
+
+// 筛选条：点某个分组只看这一组的内容，点「全部」回到分区浏览。
+test('分组筛选条可以只看某一个分组', async ({ page }) => {
+  const narration = hex('4');
+  const state: State = { ...emptyState(), voices: [voice(hex('a'), '甲音色', narration), voice(hex('b'), '乙音色')], voiceGroups: [group(narration, '旁白组')] };
+  await seedState(page, state);
+  await page.goto('/');
+  await page.getByTestId('nav-characters').click();
+  await page.getByRole('tab', { name: '参考音频' }).click();
+  await expect(page.getByRole('heading', { name: '甲音色' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '乙音色' })).toBeVisible();
+  // 只看「旁白组」：组外的乙音色消失，且不再分区（只剩这一组）
+  await page.locator('.group-filter').getByRole('button', { name: /^旁白组/ }).click();
+  await expect(page.getByRole('heading', { name: '甲音色' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '乙音色' })).toHaveCount(0);
+  // 切到「未分组」：反过来只剩乙音色
+  await page.locator('.group-filter').getByRole('button', { name: /^未分组/ }).click();
+  await expect(page.getByRole('heading', { name: '乙音色' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '甲音色' })).toHaveCount(0);
+  // 回到「全部」：两个都在
+  await page.locator('.group-filter').getByRole('button', { name: /^全部/ }).click();
+  await expect(page.getByRole('heading', { name: '甲音色' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '乙音色' })).toBeVisible();
+});
+
+// 拖拽：把条目拖到分组名上即可归类。
+test('可以把条目拖到分组上完成归类', async ({ page }) => {
+  const narration = hex('5');
+  const state: State = { ...emptyState(), voices: [voice(hex('a'), '甲音色', narration), voice(hex('b'), '乙音色')], voiceGroups: [group(narration, '旁白组')] };
+  await seedState(page, state);
+  await page.goto('/');
+  await page.getByTestId('nav-characters').click();
+  await page.getByRole('tab', { name: '参考音频' }).click();
+  const grouped = page.locator('.group-section').filter({ has: page.getByRole('heading', { name: '旁白组' }) });
+  const loose = page.locator('.group-section').filter({ has: page.getByRole('heading', { name: '未分组' }) });
+  await expect(loose.getByRole('heading', { name: '乙音色' })).toBeVisible();
+  await page.locator('.library-entry').filter({ has: page.getByRole('heading', { name: '乙音色' }) })
+    .dragTo(page.locator('.group-filter').getByRole('button', { name: /^旁白组/ }));
+  await expect(grouped.getByRole('heading', { name: '乙音色' })).toBeVisible();
+  await expect(loose.getByRole('heading', { name: '乙音色' })).toHaveCount(0);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('voice-workbench-v1') ?? '{}').voices?.find((v: { name: string }) => v.name === '乙音色')?.groupId ?? null))
+    .toBe(narration);
+});

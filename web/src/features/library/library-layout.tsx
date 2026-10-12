@@ -1,10 +1,10 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, HTMLAttributes, ReactNode } from 'react';
 import { HStack, VStack } from '@astryxdesign/core/Layout';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Search } from 'lucide-react';
 
-export function LibraryPage({ title, actions, controls, query, onQueryChange, searchLabel, empty, noResults, hasItems, hasResults, layout = 'list', children }: {
-  title: string; actions?: ReactNode; controls?: ReactNode; query: string; onQueryChange: (query: string) => void;
+export function LibraryPage({ title, actions, controls, toolbar, query, onQueryChange, searchLabel, empty, noResults, hasItems, hasResults, layout = 'list', children }: {
+  title: string; actions?: ReactNode; controls?: ReactNode; toolbar?: ReactNode; query: string; onQueryChange: (query: string) => void;
   searchLabel: string; empty: ReactNode; noResults: string; hasItems: boolean; hasResults: boolean;
   layout?: 'list' | 'tickets'; children: ReactNode;
 }) {
@@ -12,6 +12,7 @@ export function LibraryPage({ title, actions, controls, query, onQueryChange, se
     <HStack className="library-heading" hAlign="between" vAlign="center" wrap="wrap" gap={3}><h1>{title}</h1>{actions}</HStack>
     {controls ? <VStack className="library-controls" gap={0}>{controls}</VStack> : null}
     {hasItems ? <TextInput label={searchLabel} isLabelHidden placeholder={searchLabel} startIcon={<Search />} hasClear value={query} onChange={onQueryChange} /> : null}
+    {hasItems ? toolbar : null}
     <VStack className={`library-content ${!hasItems ? 'empty-state' : layout === 'tickets' ? 'ticket-list' : 'history-list'}`} gap={0}>
       {!hasItems ? empty : !hasResults ? <p role="status">{noResults}</p> : layout === 'tickets' ? <VStack gap={3}>{children}</VStack> : children}
     </VStack>
@@ -25,11 +26,11 @@ export function LibraryEmpty({ icon, art, title, description, action }: { icon?:
 
 // 所有作品与素材列表共用的票根卡片：左边封面，中间元信息、标题和摘录，右边虚线撕口后的存根。
 // 封面因类型而异（唱片、磁带、声波），结构、间距和动效保持一致。
-export function Ticket({ cover, coverClassName = '', eyebrow, title, excerpt, actions, stub, stubActions, className = '', index = 0 }: {
+export function Ticket({ cover, coverClassName = '', eyebrow, title, excerpt, actions, stub, stubActions, className = '', index = 0, drag }: {
   cover: ReactNode; coverClassName?: string; eyebrow?: ReactNode; title: ReactNode; excerpt?: string; actions?: ReactNode;
-  stub?: ReactNode; stubActions?: ReactNode; className?: string; index?: number;
+  stub?: ReactNode; stubActions?: ReactNode; className?: string; index?: number; drag?: HTMLAttributes<HTMLElement>;
 }) {
-  return <HStack className={`library-entry ticket ${className}`} gap={0} style={{ '--ticket-index': Math.min(index, 10) } as CSSProperties}>
+  return <HStack className={`library-entry ticket ${className}`} gap={0} style={{ '--ticket-index': Math.min(index, 10) } as CSSProperties} {...drag}>
     <HStack className="ticket-main grow" gap={4} vAlign="center">
       <HStack className={`ticket-cover ${coverClassName}`} gap={0} vAlign="center">{cover}</HStack>
       <VStack className="grow ticket-body" gap={1}>

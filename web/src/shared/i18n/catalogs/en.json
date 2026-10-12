@@ -1514,6 +1514,18 @@
   "@yovoice.error.groupLimit": {
     "defaultMessage": "Group limit reached. Delete unused groups first."
   },
+  "@yovoice.group.all": {
+    "defaultMessage": "All"
+  },
+  "@yovoice.group.filter": {
+    "defaultMessage": "Filter by group"
+  },
+  "@yovoice.group.collapse": {
+    "defaultMessage": "Collapse group"
+  },
+  "@yovoice.group.expand": {
+    "defaultMessage": "Expand group"
+  },
   "@yovoice.group.new": {
     "defaultMessage": "New group"
   },

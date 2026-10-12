@@ -279,6 +279,17 @@
   .group-count { flex-shrink: 0; color: var(--app-muted); font-size: var(--app-small-font); font-variant-numeric: tabular-nums; }
   .group-empty-hint { padding-block: var(--spacing-2); color: var(--app-muted); font-size: var(--app-small-font); }
   .group-actions-menu,.group-move-menu { min-width: calc(var(--spacing-10) * 5); }
+  /* 分组筛选条：一行可点选的标签，点某个分组只看这一组。 */
+  .group-filter { padding-block: var(--spacing-1); }
+  .group-chip { max-width: calc(var(--spacing-10) * 7); }
+  .group-chip .astryx-button-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* 拖拽落点：悬停时整块高亮，提示松手会落到这里。 */
+  .group-filter .group-chip[data-drop-active="true"], .group-filter .group-chip[data-drop-active="true"]:hover,
+  .group-heading[data-drop-active="true"] { background: color-mix(in srgb, var(--app-accent) 16%, transparent); outline: calc(var(--border-width) * 2) dashed var(--app-accent); outline-offset: calc(var(--spacing-1) * -1); border-radius: var(--radius-element); }
+  .group-section[data-collapsed="true"] + .group-section { margin-top: var(--spacing-4); }
+  /* 可拖动的条目给出抓取光标，让「能拖」这件事看得见。 */
+  .library-entry[draggable="true"] { cursor: grab; }
+  .library-entry[draggable="true"]:active { cursor: grabbing; }
   .history-meta { color: var(--app-muted); font-size: var(--app-small-font); }
   .audio-actions-menu { min-width: calc(var(--spacing-10) * 5); }
   .history-row small { font-variant-numeric: tabular-nums; white-space: nowrap; }
