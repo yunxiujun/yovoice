@@ -77,28 +77,37 @@ git push origin main custom
 
 ---
 
-## 四、首次设置（一次性）
+## 四、仓库配置（✅ 已完成 2026-10-12）
 
-### 1. 创建 fork（需要已登录 GitHub CLI）
+| 项目 | 值 |
+| ---- | -- |
+| GitHub 账号 | `yunxiujun` |
+| Fork 仓库 | https://github.com/yunxiujun/yovoice |
+| `upstream` | https://github.com/leemysw/yovoice.git（原项目，只读） |
+| `origin` | https://github.com/yunxiujun/yovoice.git（你的 fork） |
+| `main` | 跟踪 `upstream/main`，当前 `fc1ecb4` |
+| `custom` | 跟踪 `origin/custom`，当前 `0b61c37` |
+
+**凭据**：`D:\AI\AI指导说明类文件\常用api.env` 里的 `GITHUB API KEY`（classic PAT，
+scopes: `admin:org` / `repo` / `user` / `workflow`）。已通过
+`gh auth login --with-token` 写入 gh 的 keyring，并用 `gh auth setup-git`
+配置为 git credential helper，因此 `git push` 无需再输密码。
+
+**在新机器上重建：**
 
 ```bash
-gh auth login                                        # 浏览器授权登录
-gh repo fork leemysw/yovoice --remote=false          # 只建 fork，不改本地 remote
-git remote add origin https://github.com/<你的用户名>/yovoice.git
-git push -u origin main
-git push -u origin custom
+gh auth login                                  # 或： echo <token> | gh auth login --with-token
+gh repo fork leemysw/yovoice --clone=false     # 或直接在 GitHub 网页点 Fork
+git remote add origin https://github.com/yunxiujun/yovoice.git
+git push -u origin main custom
 ```
 
-> `main` 的历史与上游完全一致（184 个提交，共同祖先即最新提交），
-> **推送不需要 `--force`**。
+> `main` 的历史与上游完全一致（184 个提交），推送**不需要 `--force`**。
 
-### 2. 检查远程配置
-
-```bash
-git remote -v
-# upstream  https://github.com/leemysw/yovoice.git      ← 原项目（只读）
-# origin    https://github.com/<你的用户名>/yovoice.git  ← 你的 fork
-```
+> ⚠️ **token 是本机明文存放的全权限凭据**。已确认它**没有进入仓库任何文件**
+> （`git remote -v` 的 URL 不含 token，认证走 credential helper）。
+> 一旦怀疑泄露：GitHub → Settings → Developer settings → Personal access tokens
+> 撤销后重建，并同步更新 `常用api.env`。
 
 ---
 
